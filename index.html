@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projet PPSPS</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🧩 Projet PPSPS</h1>
+    <p><b>But :</b> Modifier facilement des documents Word standardisés avec des champs dynamiques.</p>
+
+    <input type="file" id="upload" accept=".docx">
+    <button id="loadBtn" class="btn">Charger le document</button>
+
+    <div id="fields"></div>
+
+    <div class="actions">
+      <button id="exportFilled" class="btn success" disabled>Exporter document rempli</button>
+      <button id="exportTemplate" class="btn secondary" disabled>Exporter modèle avec champs</button>
+    </div>
+
+    <p id="status"></p>
+  </div>
+
+  <!-- Librairies locales -->
+  <script src="js/pizzip.min.js"></script>
+  <script src="js/docxtemplater.min.js"></script>
+  <script src="js/FileSaver.min.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

@@ -3,139 +3,149 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Projet PPSPS - Détection de champs Word</title>
-
+  <title>Projet PPSPS</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 40px;
-      background: #f7f7f7;
-    }
-    h1 {
+      background: #f4f6f8;
+      margin: 0;
+      padding: 0;
       color: #222;
     }
-    button {
-      background-color: #007bff;
+
+    header {
+      background: #0056b3;
       color: white;
+      padding: 15px 25px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.3rem;
+    }
+
+    nav {
+      display: flex;
+      gap: 10px;
+    }
+
+    nav button {
+      background: white;
+      color: #0056b3;
       border: none;
-      padding: 10px 15px;
-      margin: 5px;
+      padding: 8px 15px;
       border-radius: 5px;
+      font-weight: bold;
       cursor: pointer;
-      transition: background-color 0.2s;
+      transition: background 0.2s;
     }
-    button:hover {
-      background-color: #0056b3;
+
+    nav button.active {
+      background: #003f82;
+      color: white;
     }
-    #messageBox {
-      margin-top: 15px;
-      padding: 10px;
-      border-radius: 5px;
-      background: #fff;
-      border: 1px solid #ccc;
+
+    main {
+      padding: 25px;
+    }
+
+    section {
       display: none;
     }
-    ul {
-      margin-top: 15px;
-      padding-left: 20px;
+
+    section.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in-out;
     }
-    li {
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .placeholder {
+      padding: 25px;
       background: #fff;
-      margin-bottom: 5px;
-      padding: 8px;
-      border-radius: 5px;
-      border: 1px solid #ddd;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-top: 15px;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.9rem;
+      padding: 15px;
+      color: #555;
     }
   </style>
 </head>
 <body>
-  <h1>📄 Projet PPSPS</h1>
-  <p>Chargez un document Word (.docx), puis détectez les champs entre <code>{{ }}</code>.</p>
+  <header>
+    <h1>📄 Projet PPSPS</h1>
+    <nav>
+      <button id="btn-template" class="active">🧱 Création de template</button>
+      <button id="btn-remplissage">✍️ Remplissage des champs</button>
+    </nav>
+  </header>
 
-  <input type="file" id="fileInput" accept=".docx">
-  <button id="loadButton">📂 Charger le document</button>
-  <button id="detectButton">🔍 Détecter les champs</button>
+  <main>
+    <!-- === Onglet Création de Template === -->
+    <section id="section-template" class="active">
+      <h2>🧱 Création de template</h2>
+      <div class="placeholder">
+        <p>Ici, vous pourrez :</p>
+        <ul>
+          <li>Charger un document Word (.docx)</li>
+          <li>Visualiser le document avec sa mise en page</li>
+          <li>Cliquer pour insérer ou modifier des champs</li>
+          <li>Enregistrer le template avec les balises {{...}}</li>
+        </ul>
+        <p>🔧 <em>Cette section sera activée à l’étape suivante.</em></p>
+      </div>
+    </section>
 
-  <div id="messageBox"></div>
-  <ul id="fieldList"></ul>
+    <!-- === Onglet Remplissage === -->
+    <section id="section-remplissage">
+      <h2>✍️ Remplissage des champs</h2>
+      <div class="placeholder">
+        <p>Ici, vous pourrez :</p>
+        <ul>
+          <li>Charger un document Word avec des balises {{...}}</li>
+          <li>Voir le texte et les champs détectés</li>
+          <li>Entrer des valeurs personnalisées</li>
+          <li>Télécharger le document rempli</li>
+        </ul>
+        <p>🔧 <em>Cette section sera activée après l’onglet Template.</em></p>
+      </div>
+    </section>
+  </main>
 
-  <!-- ==== Librairies JS nécessaires ==== -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.7/pizzip.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.39.1/docxtemplater.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <footer>
+    © Projet PPSPS — prototype local. Créé pour automatiser la modification de documents Word.
+  </footer>
 
-  <!-- ==== Script principal ==== -->
   <script>
-    let zip = null;
-    let currentArrayBuffer = null;
+    // === Gestion de la navigation entre les onglets ===
+    const btnTemplate = document.getElementById("btn-template");
+    const btnRemplissage = document.getElementById("btn-remplissage");
+    const sectionTemplate = document.getElementById("section-template");
+    const sectionRemplissage = document.getElementById("section-remplissage");
 
-    const fileInput = document.getElementById("fileInput");
-    const loadButton = document.getElementById("loadButton");
-    const detectButton = document.getElementById("detectButton");
-    const messageBox = document.getElementById("messageBox");
-    const fieldList = document.getElementById("fieldList");
-
-    function showMessage(msg, type = "info") {
-      messageBox.innerText = msg;
-      messageBox.style.display = "block";
-      messageBox.style.color = type === "error" ? "red" : "#333";
-    }
-
-    function clearMessage() {
-      messageBox.style.display = "none";
-      messageBox.innerText = "";
-    }
-
-    // === Charger le document ===
-    loadButton.addEventListener("click", async () => {
-      const file = fileInput.files[0];
-      if (!file) {
-        showMessage("Veuillez sélectionner un fichier Word (.docx) d'abord.", "error");
-        return;
-      }
-
-      try {
-        const arrayBuffer = await file.arrayBuffer();
-        currentArrayBuffer = arrayBuffer;
-        zip = new PizZip(arrayBuffer);
-        showMessage(`✅ Document "${file.name}" chargé avec succès.`);
-      } catch (err) {
-        console.error(err);
-        showMessage("Erreur lors du chargement du document.", "error");
-      }
+    btnTemplate.addEventListener("click", () => {
+      btnTemplate.classList.add("active");
+      btnRemplissage.classList.remove("active");
+      sectionTemplate.classList.add("active");
+      sectionRemplissage.classList.remove("active");
     });
 
-    // === Détecter les balises {{...}} ===
-    detectButton.addEventListener("click", () => {
-      if (!zip) {
-        showMessage("Veuillez d'abord charger un document.", "error");
-        return;
-      }
-
-      try {
-        const doc = new window.docxtemplater().loadZip(zip);
-        const text = doc.getFullText();
-
-        const matches = [...text.matchAll(/{{(.*?)}}/g)];
-        if (matches.length === 0) {
-          showMessage("Aucun champ {{...}} détecté dans le document.");
-          return;
-        }
-
-        clearMessage();
-        fieldList.innerHTML = "";
-        matches.forEach((match, i) => {
-          const fieldName = match[1].trim();
-          const li = document.createElement("li");
-          li.textContent = `${i + 1}. ${fieldName}`;
-          fieldList.appendChild(li);
-        });
-
-        showMessage(`✅ ${matches.length} champ(s) détecté(s).`);
-      } catch (err) {
-        console.error(err);
-        showMessage("Erreur lors de la détection des champs.", "error");
-      }
+    btnRemplissage.addEventListener("click", () => {
+      btnRemplissage.classList.add("active");
+      btnTemplate.classList.remove("active");
+      sectionRemplissage.classList.add("active");
+      sectionTemplate.classList.remove("active");
     });
   </script>
 </body>

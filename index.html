@@ -1,38 +1,142 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Projet PPSPS</title>
-  <link rel="stylesheet" href="css/style.css">
+  <title>Projet PPSPS - Détection de champs Word</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background: #f7f7f7;
+    }
+    h1 {
+      color: #222;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      margin: 5px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #messageBox {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 5px;
+      background: #fff;
+      border: 1px solid #ccc;
+      display: none;
+    }
+    ul {
+      margin-top: 15px;
+      padding-left: 20px;
+    }
+    li {
+      background: #fff;
+      margin-bottom: 5px;
+      padding: 8px;
+      border-radius: 5px;
+      border: 1px solid #ddd;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🧩 Projet PPSPS</h1>
-    <p><b>But :</b> Modifier facilement des documents Word standardisés avec des champs dynamiques.</p>
+  <h1>📄 Projet PPSPS</h1>
+  <p>Chargez un document Word (.docx), puis détectez les champs entre <code>{{ }}</code>.</p>
 
-    <input type="file" id="fileInput" accept=".docx">
-    <button id="loadButton">📂 Charger le document</button>
-    <button id="detectButton">🔍 Détecter les champs</button>
+  <input type="file" id="fileInput" accept=".docx">
+  <button id="loadButton">📂 Charger le document</button>
+  <button id="detectButton">🔍 Détecter les champs</button>
 
+  <div id="messageBox"></div>
+  <ul id="fieldList"></ul>
 
-    <div id="messageBox" style="display:none; margin-top:10px; font-weight:bold;"></div>
-    <ul id="fieldList" style="margin-top:10px;"></ul>
+  <!-- ==== Librairies JS nécessaires ==== -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzip/3.1.7/pizzip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/docxtemplater/3.39.1/docxtemplater.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
+  <!-- ==== Script principal ==== -->
+  <script>
+    let zip = null;
+    let currentArrayBuffer = null;
 
-    <div class="actions">
-      <button id="exportFilled" class="btn success" disabled>Exporter document rempli</button>
-      <button id="exportTemplate" class="btn secondary" disabled>Exporter modèle avec champs</button>
-    </div>
+    const fileInput = document.getElementById("fileInput");
+    const loadButton = document.getElementById("loadButton");
+    const detectButton = document.getElementById("detectButton");
+    const messageBox = document.getElementById("messageBox");
+    const fieldList = document.getElementById("fieldList");
 
-    <p id="status"></p>
-  </div>
+    function showMessage(msg, type = "info") {
+      messageBox.innerText = msg;
+      messageBox.style.display = "block";
+      messageBox.style.color = type === "error" ? "red" : "#333";
+    }
 
-  <!-- Librairies locales -->
-  <script src="js/pizzip.min.js"></script>
-  <script src="js/docxtemplater.min.js"></script>
-  <script src="js/FileSaver.min.js"></script>
-  <script src="js/main.js"></script>
+    function clearMessage() {
+      messageBox.style.display = "none";
+      messageBox.innerText = "";
+    }
+
+    // === Charger le document ===
+    loadButton.addEventListener("click", async () => {
+      const file = fileInput.files[0];
+      if (!file) {
+        showMessage("Veuillez sélectionner un fichier Word (.docx) d'abord.", "error");
+        return;
+      }
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        currentArrayBuffer = arrayBuffer;
+        zip = new PizZip(arrayBuffer);
+        showMessage(`✅ Document "${file.name}" chargé avec succès.`);
+      } catch (err) {
+        console.error(err);
+        showMessage("Erreur lors du chargement du document.", "error");
+      }
+    });
+
+    // === Détecter les balises {{...}} ===
+    detectButton.addEventListener("click", () => {
+      if (!zip) {
+        showMessage("Veuillez d'abord charger un document.", "error");
+        return;
+      }
+
+      try {
+        const doc = new window.docxtemplater().loadZip(zip);
+        const text = doc.getFullText();
+
+        const matches = [...text.matchAll(/{{(.*?)}}/g)];
+        if (matches.length === 0) {
+          showMessage("Aucun champ {{...}} détecté dans le document.");
+          return;
+        }
+
+        clearMessage();
+        fieldList.innerHTML = "";
+        matches.forEach((match, i) => {
+          const fieldName = match[1].trim();
+          const li = document.createElement("li");
+          li.textContent = `${i + 1}. ${fieldName}`;
+          fieldList.appendChild(li);
+        });
+
+        showMessage(`✅ ${matches.length} champ(s) détecté(s).`);
+      } catch (err) {
+        console.error(err);
+        showMessage("Erreur lors de la détection des champs.", "error");
+      }
+    });
+  </script>
 </body>
 </html>
-

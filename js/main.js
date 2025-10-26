@@ -1,76 +1,76 @@
-let zip, doc, templateName = "", fieldValues = {};
+// === Variables globales ===
+let currentDoc = null;
+let currentArrayBuffer = null;
+let zip = null;
 
-function getBaseName(filename) {
-  return filename.substring(0, filename.lastIndexOf(".")) || filename;
+// === Sélecteurs ===
+const fileInput = document.getElementById("fileInput");
+const loadButton = document.getElementById("loadButton");
+const detectButton = document.getElementById("detectButton"); // nouveau bouton
+const messageBox = document.getElementById("messageBox");
+const fieldList = document.getElementById("fieldList");
+
+// === Fonction : afficher un message utilisateur ===
+function showMessage(msg, type = "info") {
+  messageBox.innerText = msg;
+  messageBox.style.display = "block";
+  messageBox.style.color = type === "error" ? "red" : "#333";
 }
 
-document.getElementById("loadBtn").addEventListener("click", () => {
-  const fileInput = document.getElementById("upload");
-  if (!fileInput.files.length) return alert("Sélectionnez un fichier .docx");
+// === Fonction : masquer le message ===
+function clearMessage() {
+  messageBox.innerText = "";
+  messageBox.style.display = "none";
+}
+
+// === Fonction : charger un fichier Word ===
+loadButton.addEventListener("click", async () => {
   const file = fileInput.files[0];
-  templateName = getBaseName(file.name);
+  if (!file) {
+    showMessage("Veuillez sélectionner un fichier Word (.docx) d'abord.", "error");
+    return;
+  }
 
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      zip = new PizZip(e.target.result);
-      doc = new window.docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
-
-      // Extraire les balises {{...}}
-      const tags = doc.getFullText().match(/{{(.*?)}}/g);
-      if (!tags) return alert("Aucun champ {{...}} détecté dans le document.");
-
-      const uniqueTags = [...new Set(tags.map(t => t.replace(/[{}]/g, '').trim()))];
-      displayFields(uniqueTags);
-    } catch (error) {
-      alert("Erreur de chargement : " + error);
-    }
-  };
-  reader.readAsBinaryString(file);
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    currentArrayBuffer = arrayBuffer;
+    zip = new PizZip(arrayBuffer);
+    showMessage(`✅ Document "${file.name}" chargé avec succès.`);
+  } catch (err) {
+    console.error(err);
+    showMessage("Erreur lors du chargement du document.", "error");
+  }
 });
 
-function displayFields(fields) {
-  const div = document.getElementById("fields");
-  div.innerHTML = "<h3>Champs détectés :</h3>";
-  fields.forEach(f => {
-    const fieldDiv = document.createElement("div");
-    fieldDiv.classList.add("field");
-    fieldDiv.innerHTML = `
-      <label><b>${f}</b></label><br>
-      <input type="text" id="field_${f}" placeholder="Valeur pour ${f}">
-    `;
-    div.appendChild(fieldDiv);
-  });
+// === Fonction : détecter les balises {{...}} ===
+detectButton.addEventListener("click", () => {
+  if (!zip) {
+    showMessage("Veuillez d'abord charger un document.", "error");
+    return;
+  }
 
-  document.getElementById("exportFilled").disabled = false;
-  document.getElementById("exportTemplate").disabled = false;
-  document.getElementById("status").innerText = "Champs prêts à être remplis.";
-}
+  try {
+    const doc = new window.docxtemplater().loadZip(zip);
+    const text = doc.getFullText();
 
-function collectValues() {
-  const inputs = document.querySelectorAll("[id^='field_']");
-  fieldValues = {};
-  inputs.forEach(input => {
-    const key = input.id.replace("field_", "");
-    fieldValues[key] = input.value;
-  });
-}
+    const matches = [...text.matchAll(/{{(.*?)}}/g)];
+    if (matches.length === 0) {
+      showMessage("Aucun champ {{...}} détecté dans le document.");
+      return;
+    }
 
-function exportDoc(mode) {
-  collectValues();
-  const zipCopy = new PizZip(zip.generate({ type: "arraybuffer" }));
-  const docCopy = new window.docxtemplater(zipCopy, { paragraphLoop: true, linebreaks: true });
-  if (mode === "filled") docCopy.render(fieldValues);
+    clearMessage();
+    fieldList.innerHTML = "";
+    matches.forEach((match, i) => {
+      const fieldName = match[1].trim();
+      const li = document.createElement("li");
+      li.textContent = `${i + 1}. ${fieldName}`;
+      fieldList.appendChild(li);
+    });
 
-  const out = docCopy.getZip().generate({
-    type: "blob",
-    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-  });
-  const fileName = mode === "filled"
-    ? `${templateName}_modifié.docx`
-    : `${templateName}_template.docx`;
-  saveAs(out, fileName);
-}
-
-document.getElementById("exportFilled").addEventListener("click", () => exportDoc("filled"));
-document.getElementById("exportTemplate").addEventListener("click", () => exportDoc("template"));
+    showMessage(`✅ ${matches.length} champ(s) détecté(s).`);
+  } catch (err) {
+    console.error(err);
+    showMessage("Erreur lors de la détection des champs.", "error");
+  }
+});

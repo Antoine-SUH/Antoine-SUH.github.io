@@ -66,12 +66,27 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .placeholder {
+    .placeholder, .template-tools {
       padding: 25px;
       background: #fff;
       border-radius: 10px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       margin-top: 15px;
+    }
+
+    #wordPreview {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin-top: 20px;
+      overflow-y: auto;
+      max-height: 70vh;
+    }
+
+    #message {
+      margin-top: 10px;
+      font-weight: bold;
     }
 
     footer {
@@ -95,15 +110,15 @@
     <!-- === Onglet Création de Template === -->
     <section id="section-template" class="active">
       <h2>🧱 Création de template</h2>
-      <div class="placeholder">
-        <p>Ici, vous pourrez :</p>
-        <ul>
-          <li>Charger un document Word (.docx)</li>
-          <li>Visualiser le document avec sa mise en page</li>
-          <li>Cliquer pour insérer ou modifier des champs</li>
-          <li>Enregistrer le template avec les balises {{...}}</li>
-        </ul>
-        <p>🔧 <em>Cette section sera activée à l’étape suivante.</em></p>
+      <div class="template-tools">
+        <p><strong>Étape 1 :</strong> Chargez un document Word pour en visualiser la mise en page.</p>
+        <input type="file" id="fileInput" accept=".docx">
+        <button id="loadDocxButton">📂 Charger le document</button>
+        <div id="message"></div>
+      </div>
+
+      <div id="wordPreview">
+        <em>Le document s’affichera ici une fois chargé.</em>
       </div>
     </section>
 
@@ -127,8 +142,11 @@
     © Projet PPSPS — prototype local. Créé pour automatiser la modification de documents Word.
   </footer>
 
+  <!-- === Librairie pour affichage Word === -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
   <script>
-    // === Gestion de la navigation entre les onglets ===
+    // === Navigation entre les onglets ===
     const btnTemplate = document.getElementById("btn-template");
     const btnRemplissage = document.getElementById("btn-remplissage");
     const sectionTemplate = document.getElementById("section-template");
@@ -146,6 +164,35 @@
       btnTemplate.classList.remove("active");
       sectionRemplissage.classList.add("active");
       sectionTemplate.classList.remove("active");
+    });
+
+    // === Chargement et affichage du Word ===
+    const fileInput = document.getElementById("fileInput");
+    const loadDocxButton = document.getElementById("loadDocxButton");
+    const message = document.getElementById("message");
+    const wordPreview = document.getElementById("wordPreview");
+
+    loadDocxButton.addEventListener("click", async () => {
+      const file = fileInput.files[0];
+      if (!file) {
+        message.style.color = "red";
+        message.textContent = "Veuillez sélectionner un fichier Word (.docx) d'abord.";
+        return;
+      }
+
+      try {
+        message.style.color = "#333";
+        message.textContent = "Chargement du document...";
+        const arrayBuffer = await file.arrayBuffer();
+
+        const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+        wordPreview.innerHTML = result.value;
+        message.textContent = `✅ Document "${file.name}" chargé avec succès.`;
+      } catch (error) {
+        console.error(error);
+        message.style.color = "red";
+        message.textContent = "Erreur lors du chargement du document.";
+      }
     });
   </script>
 </body>

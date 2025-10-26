@@ -11,10 +11,14 @@
     <h1>🧩 Projet PPSPS</h1>
     <p><b>But :</b> Modifier facilement des documents Word standardisés avec des champs dynamiques.</p>
 
-    <input type="file" id="upload" accept=".docx">
-    <button id="loadBtn" class="btn">Charger le document</button>
+    <input type="file" id="fileInput" accept=".docx">
+    <button id="loadButton">📂 Charger le document</button>
+    <button id="detectButton">🔍 Détecter les champs</button>
 
-    <div id="fields"></div>
+
+    <div id="messageBox" style="display:none; margin-top:10px; font-weight:bold;"></div>
+    <ul id="fieldList" style="margin-top:10px;"></ul>
+
 
     <div class="actions">
       <button id="exportFilled" class="btn success" disabled>Exporter document rempli</button>
@@ -31,3 +35,4 @@
   <script src="js/main.js"></script>
 </body>
 </html>
+

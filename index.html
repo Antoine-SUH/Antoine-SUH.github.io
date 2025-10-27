@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Projet PPSPS</title>
+
+  <!-- === Librairies === -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx-preview@0.3.0/dist/docx-preview.min.js"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -66,27 +71,36 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .placeholder, .template-tools {
-      padding: 25px;
+    .placeholder {
+      padding: 20px;
       background: #fff;
       border-radius: 10px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       margin-top: 15px;
     }
 
-    #wordPreview {
+    #preview-container {
       background: #fff;
-      padding: 20px;
       border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      padding: 15px;
       margin-top: 20px;
-      overflow-y: auto;
-      max-height: 70vh;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
-    #message {
-      margin-top: 10px;
-      font-weight: bold;
+    .dual-preview {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .preview-box {
+      flex: 1;
+      min-width: 350px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: auto;
+      padding: 10px;
+      background: #fafafa;
     }
 
     footer {
@@ -95,8 +109,13 @@
       padding: 15px;
       color: #555;
     }
+
+    input[type=file] {
+      margin-top: 10px;
+    }
   </style>
 </head>
+
 <body>
   <header>
     <h1>📄 Projet PPSPS</h1>
@@ -110,15 +129,27 @@
     <!-- === Onglet Création de Template === -->
     <section id="section-template" class="active">
       <h2>🧱 Création de template</h2>
-      <div class="template-tools">
-        <p><strong>Étape 1 :</strong> Chargez un document Word pour en visualiser la mise en page.</p>
-        <input type="file" id="fileInput" accept=".docx">
-        <button id="loadDocxButton">📂 Charger le document</button>
-        <div id="message"></div>
-      </div>
 
-      <div id="wordPreview">
-        <em>Le document s’affichera ici une fois chargé.</em>
+      <div class="placeholder">
+        <label for="fileInput">📂 Charger un document Word :</label>
+        <input type="file" id="fileInput" accept=".docx">
+        <div id="fileName"></div>
+
+        <div id="preview-container" style="display:none;">
+          <h3>👁️ Aperçu du document</h3>
+          <p><em>Rendu avec docx-preview (fidèle) et Mammoth (texte simplifié).</em></p>
+
+          <div class="dual-preview">
+            <div class="preview-box">
+              <h4 style="text-align:center;">🧩 Rendu complet (docx-preview)</h4>
+              <div id="docx-preview"></div>
+            </div>
+            <div class="preview-box">
+              <h4 style="text-align:center;">📜 Rendu simplifié (Mammoth)</h4>
+              <div id="mammoth-preview"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -126,24 +157,14 @@
     <section id="section-remplissage">
       <h2>✍️ Remplissage des champs</h2>
       <div class="placeholder">
-        <p>Ici, vous pourrez :</p>
-        <ul>
-          <li>Charger un document Word avec des balises {{...}}</li>
-          <li>Voir le texte et les champs détectés</li>
-          <li>Entrer des valeurs personnalisées</li>
-          <li>Télécharger le document rempli</li>
-        </ul>
-        <p>🔧 <em>Cette section sera activée après l’onglet Template.</em></p>
+        <p>Cette section sera activée après la finalisation du système de champs.</p>
       </div>
     </section>
   </main>
 
   <footer>
-    © Projet PPSPS — prototype local. Créé pour automatiser la modification de documents Word.
+    © Projet PPSPS — prototype local.
   </footer>
-
-  <!-- === Librairie pour affichage Word === -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 
   <script>
     // === Navigation entre les onglets ===
@@ -166,32 +187,41 @@
       sectionTemplate.classList.remove("active");
     });
 
-    // === Chargement et affichage du Word ===
+    // === Chargement et affichage du document Word ===
     const fileInput = document.getElementById("fileInput");
-    const loadDocxButton = document.getElementById("loadDocxButton");
-    const message = document.getElementById("message");
-    const wordPreview = document.getElementById("wordPreview");
+    const fileName = document.getElementById("fileName");
+    const previewContainer = document.getElementById("preview-container");
+    const docxPreviewDiv = document.getElementById("docx-preview");
+    const mammothPreviewDiv = document.getElementById("mammoth-preview");
 
-    loadDocxButton.addEventListener("click", async () => {
-      const file = fileInput.files[0];
-      if (!file) {
-        message.style.color = "red";
-        message.textContent = "Veuillez sélectionner un fichier Word (.docx) d'abord.";
-        return;
+    fileInput.addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      fileName.textContent = `📁 Fichier chargé : ${file.name}`;
+      previewContainer.style.display = "block";
+      docxPreviewDiv.innerHTML = "Chargement du rendu complet...";
+      mammothPreviewDiv.innerHTML = "Chargement du texte simplifié...";
+
+      // === Rendu avec docx-preview ===
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        docx.renderAsync(arrayBuffer, docxPreviewDiv, null, {
+          inWrapper: false,
+          ignoreWidth: false,
+          ignoreHeight: false,
+          breakPages: false,
+        });
+      } catch (e) {
+        docxPreviewDiv.innerHTML = `<p style="color:red;">Erreur de rendu docx-preview : ${e.message}</p>`;
       }
 
+      // === Rendu avec Mammoth ===
       try {
-        message.style.color = "#333";
-        message.textContent = "Chargement du document...";
-        const arrayBuffer = await file.arrayBuffer();
-
-        const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
-        wordPreview.innerHTML = result.value;
-        message.textContent = `✅ Document "${file.name}" chargé avec succès.`;
-      } catch (error) {
-        console.error(error);
-        message.style.color = "red";
-        message.textContent = "Erreur lors du chargement du document.";
+        const result = await mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() });
+        mammothPreviewDiv.innerHTML = result.value;
+      } catch (e) {
+        mammothPreviewDiv.innerHTML = `<p style="color:red;">Erreur de rendu Mammoth : ${e.message}</p>`;
       }
     });
   </script>

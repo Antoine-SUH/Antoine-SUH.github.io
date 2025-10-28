@@ -17,17 +17,26 @@ loadButton.addEventListener("click", async () => {
 
   reader.onload = (event) => {
     try {
-      zip = new PizZip(new Uint8Array(event.target.result));
-      doc = new window.docxtemplater().loadZip(zip);
+      // Lecture du document Word avec PizZip
+      const content = event.target.result;
+      zip = new PizZip(content);
+
+      // Initialisation de Docxtemplater avec le zip
+      doc = new window.docxtemplater(zip, {
+        paragraphLoop: true,
+        linebreaks: true,
+      });
+
       status.textContent = "✅ Document chargé avec succès !";
       document.getElementById("detect-section").classList.remove("hidden");
+
     } catch (error) {
-      console.error("Erreur :", error);
+      console.error("Erreur de chargement :", error);
       status.textContent = "❌ Erreur lors du chargement du document.";
     }
   };
 
-  reader.readAsArrayBuffer(file);
+  reader.readAsBinaryString(file);
 });
 
 detectButton.addEventListener("click", () => {
@@ -67,10 +76,17 @@ exportFilledButton.addEventListener("click", () => {
       data[key] = document.getElementById(`field-${key}`)?.value || "";
     });
 
-    const newDoc = new window.docxtemplater(zip);
-    newDoc.render(data);
-    const out = newDoc.getZip().generate({ type: "blob" });
+    doc.setData(data);
+    doc.render();
+
+    const out = doc.getZip().generate({
+      type: "blob",
+      mimeType:
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    });
     saveAs(out, "document_modifié.docx");
+    status.textContent = "✅ Document exporté avec succès !";
+
   } catch (error) {
     console.error("Erreur génération :", error);
     alert("Erreur pendant la génération du document.");
@@ -79,6 +95,10 @@ exportFilledButton.addEventListener("click", () => {
 
 exportTemplateButton.addEventListener("click", () => {
   if (!zip) return alert("Charge un document d'abord !");
-  const out = zip.generate({ type: "blob" });
+  const out = zip.generate({
+    type: "blob",
+    mimeType:
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  });
   saveAs(out, "document_template.docx");
 });

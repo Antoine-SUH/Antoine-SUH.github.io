@@ -1,4 +1,4 @@
-let zip, docXml, originalZip, fields = {};
+let zip, doc, data = {};
 
 const uploadInput = document.getElementById("upload");
 const loadButton = document.getElementById("load-doc");
@@ -8,24 +8,17 @@ const exportTemplateButton = document.getElementById("export-template");
 const fieldsContainer = document.getElementById("fields");
 const status = document.getElementById("status");
 
-// Charger le document
 loadButton.addEventListener("click", async () => {
   const file = uploadInput.files[0];
   if (!file) return alert("Sélectionne un fichier .docx d'abord !");
-
+  
   status.textContent = "Chargement du document...";
   const reader = new FileReader();
 
   reader.onload = (event) => {
     try {
-      originalZip = new PizZip(new Uint8Array(event.target.result));
-
-      // Lecture du XML principal du document Word
-      docXml = originalZip.files["word/document.xml"].asText();
-
-      // On nettoie le XML pour regrouper les morceaux de texte
-      docXml = docXml.replace(/<\/w:t><w:t[^>]*>/g, "");
-
+      zip = new PizZip(new Uint8Array(event.target.result));
+      doc = new window.docxtemplater().loadZip(zip);
       status.textContent = "✅ Document chargé avec succès !";
       document.getElementById("detect-section").classList.remove("hidden");
     } catch (error) {
@@ -37,56 +30,55 @@ loadButton.addEventListener("click", async () => {
   reader.readAsArrayBuffer(file);
 });
 
-// Détecter les balises {{...}}
 detectButton.addEventListener("click", () => {
-  if (!docXml) return alert("Charge d'abord un document !");
-  
-  const regex = /\{\{(.*?)\}\}/g;
-  const matches = [...docXml.matchAll(regex)];
-  fieldsContainer.innerHTML = "";
+  if (!doc) return alert("Charge d'abord un document !");
+  try {
+    const tags = doc.getFullText().match(/\{\{(.*?)\}\}/g) || [];
+    const uniqueTags = [...new Set(tags.map(t => t.replace(/[{}]/g, '').trim()))];
 
-  if (matches.length === 0) {
-    fieldsContainer.innerHTML = "<p>Aucune balise {{...}} détectée.</p>";
-    return;
+    fieldsContainer.innerHTML = "";
+    if (uniqueTags.length === 0) {
+      fieldsContainer.innerHTML = "<p>Aucune balise {{...}} détectée.</p>";
+      return;
+    }
+
+    uniqueTags.forEach(key => {
+      if (!data[key]) data[key] = "";
+      const div = document.createElement("div");
+      div.classList.add("field");
+      div.innerHTML = `
+        <label>${key}</label>
+        <input type="text" id="field-${key}" placeholder="Valeur pour ${key}" value="${data[key]}" />
+      `;
+      fieldsContainer.appendChild(div);
+    });
+
+    fieldsContainer.innerHTML += "<p>🟢 Balises détectées et prêtes à être remplies.</p>";
+  } catch (error) {
+    console.error("Erreur détection :", error);
+    alert("Erreur pendant la détection des balises.");
   }
-
-  matches.forEach(match => {
-    const key = match[1].trim();
-    if (!fields[key]) fields[key] = "";
-
-    const div = document.createElement("div");
-    div.classList.add("field");
-    div.innerHTML = `
-      <label>${key}</label>
-      <input type="text" id="field-${key}" placeholder="Valeur pour ${key}" value="${fields[key]}"/>
-    `;
-    fieldsContainer.appendChild(div);
-  });
-
-  fieldsContainer.innerHTML += "<p>🟢 Balises détectées et prêtes à être remplies.</p>";
 });
 
-// Exporter le document rempli
 exportFilledButton.addEventListener("click", () => {
-  if (!originalZip || !docXml) return alert("Charge un document d'abord !");
-  
-  let modifiedXml = docXml;
-  Object.keys(fields).forEach(key => {
-    const val = document.getElementById(`field-${key}`)?.value || "";
-    const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, "g");
-    modifiedXml = modifiedXml.replace(regex, val);
-  });
+  if (!doc) return alert("Charge un document d'abord !");
+  try {
+    Object.keys(data).forEach(key => {
+      data[key] = document.getElementById(`field-${key}`)?.value || "";
+    });
 
-  const newZip = new PizZip(originalZip);
-  newZip.file("word/document.xml", modifiedXml);
-
-  const out = newZip.generate({ type: "blob" });
-  saveAs(out, "document_modifié.docx");
+    const newDoc = new window.docxtemplater(zip);
+    newDoc.render(data);
+    const out = newDoc.getZip().generate({ type: "blob" });
+    saveAs(out, "document_modifié.docx");
+  } catch (error) {
+    console.error("Erreur génération :", error);
+    alert("Erreur pendant la génération du document.");
+  }
 });
 
-// Exporter le modèle (avec balises intactes)
 exportTemplateButton.addEventListener("click", () => {
-  if (!originalZip) return alert("Charge un document d'abord !");
-  const out = originalZip.generate({ type: "blob" });
+  if (!zip) return alert("Charge un document d'abord !");
+  const out = zip.generate({ type: "blob" });
   saveAs(out, "document_template.docx");
 });

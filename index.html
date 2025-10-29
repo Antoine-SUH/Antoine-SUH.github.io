@@ -1,43 +1,27 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Projet PPSPS</title>
-  <link rel="stylesheet" href="style.css" />
-  <!-- Librairies -->
-  <script src="libs/pizzip.min.js"></script>
-  <script src="libs/docxtemplater.min.js"></script>
-  <script src="libs/FileSaver.min.js"></script>
-  <script src="main.js"></script>
-
-</head>
-<body>
-  <header>
-    <h1>Projet PPSPS</h1>
-  </header>
-
-  <main>
-    <section id="load-section">
-      <h2>1️⃣ Charger un document Word</h2>
-      <input type="file" id="upload" accept=".docx" />
-      <button id="load-doc">Charger</button>
-      <p id="status"></p>
-    </section>
-
-    <section id="detect-section" class="hidden">
-      <h2>2️⃣ Détection et gestion des balises</h2>
-      <button id="detect-tags">🔍 Détecter les balises {{...}}</button>
-      <div id="fields"></div>
-      <button id="export-filled" class="action">📄 Exporter Word rempli</button>
-      <button id="export-template" class="action">💾 Exporter Word avec balises</button>
-    </section>
-  </main>
-
-  <footer>
-    <p>© Projet PPSPS - Interface de génération et remplissage Word</p>
-  </footer>
-
-  <script src="main.js"></script>
-</body>
-</html>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projet PPSPS – Modification Word</title>
+  <style>
+    body {
+      font-family: system-ui, Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .container {
+      max-width: 800px;
+      background: white;
+      margin: auto;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .section {
+      margin-

@@ -22,7 +22,7 @@ loadButton.addEventListener("click", async () => {
       zip = new PizZip(content);
 
       // Initialisation de Docxtemplater avec le zip
-      doc = new window.docxtemplater(zip, {
+      doc = new window.Docxtemplater(zip, {
         paragraphLoop: true,
         linebreaks: true,
       });

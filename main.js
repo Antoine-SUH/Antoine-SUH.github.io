@@ -16,25 +16,37 @@ loadButton.addEventListener("click", async () => {
   const reader = new FileReader();
 
   reader.onload = (event) => {
-    try {
-      // Lecture du document Word avec PizZip
-      const content = event.target.result;
-      zip = new PizZip(content);
+  try {
+    const content = event.target.result;
+    zip = new (window.PizZip || window.pizzip || window.zip)(content);
 
-      // Initialisation de Docxtemplater avec le zip
-      doc = new window.Docxtemplater(zip, {
-        paragraphLoop: true,
-        linebreaks: true,
-      });
+    // Recherche automatique du bon constructeur Docxtemplater
+    const DocxClass =
+      window.Docxtemplater ||
+      window.docxtemplater ||
+      window["Docxtemplater"] ||
+      window["docxtemplater"];
 
-      status.textContent = "✅ Document chargé avec succès !";
-      document.getElementById("detect-section").classList.remove("hidden");
-
-    } catch (error) {
-      console.error("Erreur de chargement :", error);
-      status.textContent = "❌ Erreur lors du chargement du document.";
+    if (!DocxClass) {
+      throw new Error(
+        "Docxtemplater n’a pas été trouvé dans window. Vérifie que docxtemplater.min.js est bien chargé avant main.js."
+      );
     }
-  };
+
+    // Initialisation de Docxtemplater avec la classe détectée
+    doc = new DocxClass(zip, {
+      paragraphLoop: true,
+      linebreaks: true,
+    });
+
+    status.textContent = "✅ Document chargé avec succès !";
+    document.getElementById("detect-section").classList.remove("hidden");
+
+  } catch (error) {
+    console.error("Erreur de chargement :", error);
+    status.textContent = "❌ Erreur lors du chargement du document.";
+  }
+};
 
   reader.readAsBinaryString(file);
 });

@@ -92,9 +92,20 @@
   </div>
 
   <!-- Librairies -->
+    <!-- Librairies : ordre important -->
+  <!-- 1) PizZip : bibliothèque qui lit/écrit les archives ZIP (.docx sont des zips). Obligatoire avant Docxtemplater. -->
   <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip.min.js"></script>
-  <script src="https://unpkg.com/docxtemplater@3.31.0/build/docxtemplater.js"></script>
+
+  <!-- 2) Docxtemplater (build UMD "latest min") : moteur de templating qui remplace les {{champs}} dans le document.
+       Doit exposer un constructeur global (window.Docxtemplater) utilisable directement dans le navigateur. -->
+  <script src="https://unpkg.com/docxtemplater@3.31.0/build/docxtemplater-latest.min.js"></script>
+
+  <!-- 3) FileSaver : utilitaire pour générer et déclencher le téléchargement côté client (saveAs(blob)). -->
   <script src="libs/FileSaver.min.js"></script>
-  <script src="main.js" ></script>
+
+  <!-- 4) main.js : script principal de ton application.
+       - DOIT être chargé en dernier car il dépend des bibliothèques ci-dessus.
+       - Si tu veux garantir qu'il s'exécute après le parsing HTML, tu peux ajouter 'defer' : <script src="main.js" defer></script> -->
+  <script src="main.js"></script>
 </body>
 </html>
